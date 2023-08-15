@@ -3,6 +3,8 @@ package com.ecommerce.orderservice.service;
 import com.ecommerce.orderservice.dto.InventoryResponse;
 import com.ecommerce.orderservice.dto.OrderRequest;
 import com.ecommerce.orderservice.dto.OrderLineItemsDto;
+import com.ecommerce.orderservice.dto.OrderResponse;
+import com.ecommerce.orderservice.exception.ProductOutOfStockException;
 import com.ecommerce.orderservice.model.Order;
 import com.ecommerce.orderservice.model.OrderLineItems;
 import com.ecommerce.orderservice.repository.OrderRepository;
@@ -23,7 +25,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final WebClient.Builder webClientBuilder;
 
-    public void placeOrder(OrderRequest orderRequest){
+    public void placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDtoList()
@@ -40,7 +42,7 @@ public class OrderService {
         InventoryResponse[] inventoryResponses = webClientBuilder.build()
                 .get()
                 .uri("http://inventory-service/api/inventory",
-                        uriBuilder -> uriBuilder.queryParam("skuCodes",skuCodes).build())
+                        uriBuilder -> uriBuilder.queryParam("skuCodes", skuCodes).build())
                 .retrieve()
                 .bodyToMono(InventoryResponse[].class)
                 .block();
@@ -48,10 +50,10 @@ public class OrderService {
         boolean allProductsInStock = Arrays.stream(inventoryResponses)
                 .allMatch(InventoryResponse::isInStock);
 
-        if(allProductsInStock){
+        if (allProductsInStock) {
             orderRepository.save(order);
         } else {
-            throw new IllegalArgumentException("Product not in stock!");
+            throw new ProductOutOfStockException("Product not in stock!");
         }
     }
 
@@ -61,5 +63,12 @@ public class OrderService {
         orderLineItems.setQuantity(orderLineItemsDto.getQuantity());
         orderLineItems.setSkuCode(orderLineItemsDto.getSkuCode());
         return orderLineItems;
+    }
+
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll()
+                .stream()
+                .map(order -> new OrderResponse(order.getOrderNumber(), order.getOrderLineItemsList()))
+                .toList();
     }
 }
