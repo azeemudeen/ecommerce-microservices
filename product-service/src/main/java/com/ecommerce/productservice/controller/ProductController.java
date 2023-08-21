@@ -3,6 +3,7 @@ package com.ecommerce.productservice.controller;
 import com.ecommerce.productservice.dto.ProductRequest;
 import com.ecommerce.productservice.dto.ProductResponse;
 import com.ecommerce.productservice.service.ProductService;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
+@Observed
 public class ProductController {
 
     private final ProductService productService;
